@@ -1,0 +1,15 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPath": "/Users/rogeriocassares/esp/v5.4/esp-idf",
+  "idf.toolsPath": "/Users/rogeriocassares/.espressif",
+  "idf.pythonInstallPath": "/Users/rogeriocassares/.pyenv/shims/python3",
+  "idf.port": "/dev/tty.usbserial-0001",
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "/Users/rogeriocassares/.espressif/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
+    "IDF_TARGET": "esp32"
+  },
+  "idf.openOcdConfigs": [
+    "board/esp32-wrover-kit-3.3v.cfg"
+  ],
+  "idf.flashType": "UART"
+}
