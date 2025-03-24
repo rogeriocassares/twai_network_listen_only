@@ -98,24 +98,24 @@ static void twai_receive_task(void *arg)
 
   while (1)
   {
-    ESP_LOGI(EXAMPLE_TAG, "enter twai_receive_task");
+    // ESP_LOGI(EXAMPLE_TAG, "enter twai_receive_task");
 
     twai_message_t rx_msg;
     twai_receive(&rx_msg, portMAX_DELAY);
-    ESP_LOGI(EXAMPLE_TAG, "after twai_receive");
+    // ESP_LOGI(EXAMPLE_TAG, "after twai_receive");
 
-    if (rx_msg.identifier != ID_SLAVE_DATA)
-    {
+    // if (rx_msg.identifier != ID_SLAVE_DATA)
+    // {
 
       uint32_t data = 0;
       for (int i = 0; i < rx_msg.data_length_code; i++)
       
       {
-        ESP_LOGI(EXAMPLE_TAG, "enter main for");
+        // ESP_LOGI(EXAMPLE_TAG, "enter main for");
         data |= (rx_msg.data[i] << (i * 8));
       }
       ESP_LOGI(EXAMPLE_TAG, "Received data value %" PRIu32, data);
-    }
+    // }
   }
 
   xSemaphoreGive(rx_sem);
