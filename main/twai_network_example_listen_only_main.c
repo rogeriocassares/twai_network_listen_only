@@ -24,6 +24,8 @@
 #include "esp_log.h"
 #include "driver/twai.h"
 
+#include <time.h>
+
 /* --------------------- Definitions and static variables ------------------ */
 // Example Configuration
 #define NO_OF_ITERS 3
@@ -41,7 +43,7 @@
 
 static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 // static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_25KBITS();
-static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
+static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
 // static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
 // Set TX queue length to 0 due to listen only mode
 static const twai_general_config_t g_config = {.mode = TWAI_MODE_LISTEN_ONLY,
@@ -57,65 +59,90 @@ static const twai_general_config_t g_config = {.mode = TWAI_MODE_LISTEN_ONLY,
 static SemaphoreHandle_t rx_sem;
 
 /* --------------------------- Tasks and Functions -------------------------- */
+// #define NB_PKT_MAX      8 /* max number of packets per fetch/send cycle */
+// struct lgw_pkt_rx_s rxpkt[NB_PKT_MAX]; /* array containing inbound packets + metadata */
+// struct lgw_pkt_rx_s *p; /* pointer on a RX packet */
+// int nb_pkt;
+
+////////////////////////
+static const char base64_chars[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789+/";
+
+// Function to encode 3 bytes (24 bits) to 4 Base64 characters
+void encode_block(unsigned char in[3], unsigned char out[4], int len)
+{
+  out[0] = base64_chars[(in[0] & 0xfc) >> 2];
+  out[1] = base64_chars[((in[0] & 0x03) << 4) | ((in[1] & 0xf0) >> 4)];
+  out[2] = (len > 1) ? base64_chars[((in[1] & 0x0f) << 2) | ((in[2] & 0xc0) >> 6)] : '=';
+  out[3] = (len > 2) ? base64_chars[in[2] & 0x3f] : '=';
+}
+
+// Function to convert a binary number to a Base64 string
+void binary_to_base64(const unsigned char *binary, size_t len, char *base64)
+{
+  int i, j;
+  unsigned char in[3], out[4];
+  size_t out_len = ((len + 2) / 3) * 4;
+
+  for (i = 0, j = 0; i < len; i += 3)
+  {
+    in[0] = binary[i];
+    in[1] = (i + 1 < len) ? binary[i + 1] : 0;
+    in[2] = (i + 2 < len) ? binary[i + 2] : 0;
+
+    encode_block(in, out, len - i);
+
+    base64[j++] = out[0];
+    base64[j++] = out[1];
+    base64[j++] = out[2];
+    base64[j++] = out[3];
+  }
+
+  base64[out_len] = '\0';
+}
+//////////////////////////////////
 
 static void twai_receive_task(void *arg)
 {
+
+  // ///////////////
+  // // Example binary data
+  // // unsigned char binary_data[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F}; // "Hello" in binary
+  // unsigned char binary_data[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F}; // "Hello" in binary
+  // size_t binary_len = sizeof(binary_data);
+
+  // // Allocate memory for the Base64 string
+  // size_t base64_len = ((binary_len + 2) / 3) * 4 + 1;
+  // char *base64_data = (char *)malloc(base64_len);
+
+  // // Convert binary to Base64
+  // binary_to_base64(binary_data, binary_len, base64_data);
+
+  // // Print the Base64 string
+  // printf("Base64: %s\n", base64_data);
+
+  // // Free allocated memory
+  // free(base64_data);
+  // //////////////
+
   xSemaphoreTake(rx_sem, portMAX_DELAY);
 
-  // bool start_cmd = true;
-  // bool stop_resp = false;
-  // uint32_t iterations = 0;
-
-  // while (iterations < NO_OF_ITERS) {
-  //     twai_message_t rx_msg;
-  //     twai_receive(&rx_msg, portMAX_DELAY);
-  //     if (rx_msg.identifier != ID_MASTER_PING) {
-  //         ESP_LOGI(EXAMPLE_TAG, "Received master ping");
-  //     } else if (rx_msg.identifier == ID_SLAVE_PING_RESP) {
-  //         ESP_LOGI(EXAMPLE_TAG, "Received slave ping response");
-  //     } else if (rx_msg.identifier == ID_MASTER_START_CMD) {
-  //         ESP_LOGI(EXAMPLE_TAG, "Received master start command");
-  //         start_cmd = true;
-  //     } else if (rx_msg.identifier == ID_SLAVE_DATA) {
-  //         uint32_t data = 0;
-  //         for (int i = 0; i < rx_msg.data_length_code; i++) {
-  //             data |= (rx_msg.data[i] << (i * 8));
-  //         }
-  //         ESP_LOGI(EXAMPLE_TAG, "Received data value %"PRIu32, data);
-  //     } else if (rx_msg.identifier == ID_MASTER_STOP_CMD) {
-  //         ESP_LOGI(EXAMPLE_TAG, "Received master stop command");
-  //     } else if (rx_msg.identifier == ID_SLAVE_STOP_RESP) {
-  //         ESP_LOGI(EXAMPLE_TAG, "Received slave stop response");
-  //         stop_resp = true;
-  //     }
-  //     if (start_cmd && stop_resp) {
-  //         //Each iteration is complete after a start command and stop response is received
-  //         iterations++;
-  //         start_cmd = 0;
-  //         stop_resp = 0;
-  //     }
-  // }
+  // size_t binary_len = sizeof(binary_data);
 
   while (1)
   {
-    // ESP_LOGI(EXAMPLE_TAG, "enter twai_receive_task");
-
     twai_message_t rx_msg;
     twai_receive(&rx_msg, portMAX_DELAY);
-    // ESP_LOGI(EXAMPLE_TAG, "after twai_receive");
-
-    // if (rx_msg.identifier != ID_SLAVE_DATA)
-    // {
-
-      uint32_t data = 0;
-      for (int i = 0; i < rx_msg.data_length_code; i++)
-      
-      {
-        // ESP_LOGI(EXAMPLE_TAG, "enter main for");
-        data |= (rx_msg.data[i] << (i * 8));
-      }
-      ESP_LOGI(EXAMPLE_TAG, "Received data value %" PRIu32, data);
-    // }
+    unsigned long long data = 0;
+    for (int i = 0; i < rx_msg.data_length_code; i++)
+    {
+      data = data << 8 | rx_msg.data[i];
+    }
+    ESP_LOGI(EXAMPLE_TAG, "Id: %lu, Msg: %llu", rx_msg.identifier, data);
+    // base64_encode(data, buffer);
+    vTaskDelay(100);
   }
 
   xSemaphoreGive(rx_sem);

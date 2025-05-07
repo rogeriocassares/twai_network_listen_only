@@ -1,6 +1,6 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.espIdfPath": "/Users/rogeriocassares/esp/v5.4/esp-idf",
+  "idf.espIdfPath": "/Users/rogeriocassares/esp/v5.4.1/esp-idf",
   "idf.toolsPath": "/Users/rogeriocassares/.espressif",
   "idf.pythonInstallPath": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
   "idf.port": "/dev/tty.wchusbserial58370539271",
@@ -11,5 +11,8 @@
   "idf.openOcdConfigs": [
     "board/esp32s3-builtin.cfg"
   ],
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "files.associations": {
+    "task.h": "c"
+  }
 }
